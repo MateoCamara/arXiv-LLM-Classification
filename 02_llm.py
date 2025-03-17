@@ -9,36 +9,22 @@ import pandas as pd
 CHATGPT_API_URL = "https://api.openai.com/v1/chat/completions"
 MODEL_CHATGPT = "gpt-4o-mini-2024-07-18"
 
-# Prompt fijo para la clasificación
-CLASSIFICATION_PROMPT = """
-You will analyze the title and abstract of an academic paper to provide three specific tags based strictly on the following criteria:
 
-1. **Neural Audio Synthesis (NAS)**:
-   - Tag as `NAS: YES` if the topic explicitly involves synthesizing audio using neural networks of any kind.
-   - Tag as `NAS: NO` if it uses traditional synthesis methods (additive, subtractive, granular, filters, etc.) without neural networks or if it is not related to synthesizing sound at all.
+def load_prompt(prompt_file):
+    """
+    Load the prompt from an external file.
 
-2. **Sound Type**:
-   - Indicate the type(s) of sound the paper addresses among `music`, `speech`, and `sound effects`.
-   - Clarifications:
-      - `speech`: related exclusively to spoken language.
-      - `music`: musical audio generation.
-      - `sound effects`: all generated audio that is neither music nor speech.
-   - Multiple sound types can appear; separate them by commas if more than one applies (e.g., `music, speech`).
+    Parameters:
+        prompt_file (str): File path to the prompt file.
 
-3. **AI Architecture**:
-   - Identify the neural network architecture explicitly used to synthesize audio (e.g., `VAE`, `GAN`, `Diffusion`, `Transformer`, etc.).
-   - Important clarification: Report only the architecture that directly synthesizes audio. If another AI architecture is used for tasks like text interpretation or conditioning but not directly synthesizing audio, it must not be included here.
-   - If the architecture is not explicitly mentioned, tag as `Architecture: Not specified`.
+    Returns:
+        str: The content of the prompt file.
+    """
+    if not os.path.exists(prompt_file):
+        raise FileNotFoundError(f"Prompt file '{prompt_file}' not found.")
+    with open(prompt_file, 'r') as f:
+        return f.read()
 
-Your output should strictly follow this format, without additional messages or explanations:
-
-```
-NAS: YES or NO
-Sound Type: [music/speech/sound effects]
-Architecture: [Architecture type or Not specified]
-```
-
-"""
 
 def deduplicate_papers(papers):
     """
@@ -59,7 +45,8 @@ def deduplicate_papers(papers):
             unique.append(paper)
     return unique
 
-def classify_paper(title, abstract, api_key):
+
+def classify_paper(title, abstract, api_key, prompt):
     """
     Call the ChatGPT API to classify a paper using its title and abstract.
 
@@ -67,12 +54,13 @@ def classify_paper(title, abstract, api_key):
         title (str): The paper title.
         abstract (str): The paper abstract.
         api_key (str): API key for OpenAI.
+        prompt (str): The prompt to send to the ChatGPT API.
 
     Returns:
         dict: Dictionary with classification tags.
     """
-    # Build message combining the prompt and paper data
-    message = f"{CLASSIFICATION_PROMPT}\n\ntitle: {title}\nabstract: {abstract}\n"
+    # Build message combining the external prompt and paper data
+    message = f"{prompt}\n\ntitle: {title}\nabstract: {abstract}\n"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
@@ -95,6 +83,7 @@ def classify_paper(title, abstract, api_key):
             tags[key.strip().lower()] = value.strip()
     return tags
 
+
 def save_checkpoint(checkpoint_index, results, checkpoint_file, csv_file):
     """
     Save a checkpoint and partial results.
@@ -110,6 +99,7 @@ def save_checkpoint(checkpoint_index, results, checkpoint_file, csv_file):
     df = pd.DataFrame(results)
     df.to_csv(csv_file, index=False)
     print(f"Checkpoint saved at paper #{checkpoint_index} - {len(results)} papers in CSV.")
+
 
 def load_checkpoint(checkpoint_file):
     """
@@ -127,6 +117,7 @@ def load_checkpoint(checkpoint_file):
             return data.get("checkpoint", 0)
     return 0
 
+
 def main():
     """
     Main function to classify arXiv papers.
@@ -135,9 +126,13 @@ def main():
         description="Classify arXiv papers using ChatGPT based on title and abstract."
     )
     parser.add_argument("--input_csv", type=str, required=True, help="Path to input CSV file with arXiv papers")
-    parser.add_argument("--checkpoint_freq", type=int, default=10, help="Frequency (number of papers) to save a checkpoint")
-    parser.add_argument("--checkpoint_file", type=str, default="checkpoint.json", help="Path to save the checkpoint file")
-    parser.add_argument("--csv_file", type=str, default="papers_sound_effects.csv", help="Path to save the results CSV file")
+    parser.add_argument("--prompt_file", type=str, default="prompt.txt", help="Path to the prompt file")
+    parser.add_argument("--checkpoint_freq", type=int, default=10,
+                        help="Frequency (number of papers) to save a checkpoint")
+    parser.add_argument("--checkpoint_file", type=str, default="checkpoint.json",
+                        help="Path to save the checkpoint file")
+    parser.add_argument("--csv_file", type=str, default="papers_sound_effects.csv",
+                        help="Path to save the results CSV file")
     parser.add_argument("--sleep_time", type=float, default=0.3, help="Time to sleep between API calls (in seconds)")
     args = parser.parse_args()
 
@@ -145,6 +140,13 @@ def main():
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
         print("Error: OPENAI_API_KEY environment variable not found.")
+        return
+
+    # Load the external prompt from file
+    try:
+        classification_prompt = load_prompt(args.prompt_file)
+    except Exception as e:
+        print(f"Error loading prompt: {e}")
         return
 
     # Load input CSV file with arXiv papers
@@ -162,8 +164,8 @@ def main():
 
     # Process each paper
     for idx, paper in enumerate(all_papers[checkpoint_index:], start=checkpoint_index):
-        print(f"Processing paper #{idx+1}: {paper['title'][:50]}...")
-        tags = classify_paper(paper["title"], paper["summary"], openai_api_key)
+        print(f"Processing paper #{idx + 1}: {paper['title'][:50]}...")
+        tags = classify_paper(paper["title"], paper["summary"], openai_api_key, classification_prompt)
         if tags is None:
             print("Error classifying paper, skipping.")
             continue
@@ -188,6 +190,7 @@ def main():
     # Save final results
     save_checkpoint(len(all_papers), results, args.checkpoint_file, args.csv_file)
     print("Process completed.")
+
 
 if __name__ == "__main__":
     main()

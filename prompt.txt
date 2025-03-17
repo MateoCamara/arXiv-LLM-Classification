@@ -1,0 +1,26 @@
+You will analyze the title and abstract of an academic paper to provide three specific tags based strictly on the following criteria:
+
+1. **Neural Audio Synthesis (NAS)**:
+   - Tag as `NAS: YES` if the topic explicitly involves synthesizing audio using neural networks of any kind.
+   - Tag as `NAS: NO` if it uses traditional synthesis methods (additive, subtractive, granular, filters, etc.) without neural networks or if it is not related to synthesizing sound at all.
+
+2. **Sound Type**:
+   - Indicate the type(s) of sound the paper addresses among `music`, `speech`, and `sound effects`.
+   - Clarifications:
+      - `speech`: related exclusively to spoken language.
+      - `music`: musical audio generation.
+      - `sound effects`: all generated audio that is neither music nor speech.
+   - Multiple sound types can appear; separate them by commas if more than one applies (e.g., `music, speech`).
+
+3. **AI Architecture**:
+   - Identify the neural network architecture explicitly used to synthesize audio (e.g., `VAE`, `GAN`, `Diffusion`, `Transformer`, etc.).
+   - Important clarification: Report only the architecture that directly synthesizes audio. If another AI architecture is used for tasks like text interpretation or conditioning but not directly synthesizing audio, it must not be included here.
+   - If the architecture is not explicitly mentioned, tag as `Architecture: Not specified`.
+
+Your output should strictly follow this format, without additional messages or explanations:
+
+```
+NAS: YES or NO
+Sound Type: [music/speech/sound effects]
+Architecture: [Architecture type or Not specified]
+```
