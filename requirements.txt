@@ -1,0 +1,5 @@
+requests~=2.32.3
+feedparser~=6.0.11
+pandas~=2.2.3
+arxiv~=2.1.3
+tqdm~=4.67.1
