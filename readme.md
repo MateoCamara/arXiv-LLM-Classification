@@ -9,6 +9,8 @@ This repository contains scripts to extract academic papers from arXiv and class
    **Example query:**  
    `"cat:eess.AS AND submittedDate:[2014 TO 2026]"`
 
+   Additionally, you can use platforms like **Web of Science**, whose GUI allows bulk downloading of papers, or **Scopus**, which enables bulk exporting of titles and abstracts.
+
 2. **Paper Classification**  
    Classify papers using ChatGPT API based on their title and abstract. This script tags papers for Neural Audio Synthesis (NAS), sound type, and AI architecture.  
    **Important:** This part uses the ChatGPT API. Make sure to set your API key in the environment variable `OPENAI_API_KEY`.
@@ -63,3 +65,4 @@ Give credit to the original authors by referencing this repository.
 ## Contributing
 
 Contributions are welcome. Please follow the standard pull request process.
+
